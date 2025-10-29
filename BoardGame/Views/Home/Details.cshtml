@@ -1,0 +1,61 @@
+﻿@using WebMatrix.Data
+
+@{
+    ViewBag.Title = "Detail";
+    var db = Database.Open("BoardGame");
+    var ChoosenGame = Request.QueryString["id"];
+    var gameDetailsQuery = "select * from BoardGame where BGGId = @0";
+    var gameDetailsData = db.QuerySingle(gameDetailsQuery, ChoosenGame);
+}
+
+<main>
+    <div class="container d-flex justify-content-around bg-info p-3" style="border-radius:10px">
+        <img src="@gameDetailsData.ImagePath.ToString()" alt="@gameDetailsData.Name cover image" style="max-height:200px"/>
+        <div class="ms-3">
+            <p><b>Board game name:</b> @gameDetailsData.Name</p>
+            <p><b>Number of players:</b> @gameDetailsData.MinPlayers ~ @gameDetailsData.MaxPlayers</p>
+            <p><b>Game weight:</b> @Math.Round(gameDetailsData.GameWeight,2) gram</p>
+            <p><b>Best number of players: </b>@{ if (gameDetailsData.BestPlayers == 0)
+                { <span> The more the merrier</span>  }
+                    else {<span>@gameDetailsData.BestPlayers players</span>}
+                }</p>
+        </div>
+        <div class="ms-3 text-center">
+            <h2>#@gameDetailsData.RankInboardgame</h2>
+            <p class="text-opacity-50">Rank in board game</p>
+            <h2>#@gameDetailsData.RankInstrategygames</h2>
+            <p class="text-opacity-50">Rank in stragegy game</p>
+            <h2>#@gameDetailsData.RankInfamilygames</h2>
+            <p class="text-opacity-50">Rank in family game</p>
+            <h2>#@gameDetailsData.RankInthematic</h2>
+            <p class="text-opacity-50">Rank in thematic</p>
+        </div>
+    </div>
+    <hr />
+    <div class="bg-body">
+        <h6>Give us your experience of this game</h6>
+        <form method="post" action="/Home/Details?id=@gameDetailsData.BGGId" class="container p-3 col-12 d-flex flex-column">
+            <div class="container d-flex mb-2">
+                <input type="radio" name="star" value="1" class="align-baseline" />
+                <span class="me-4">*: This game suckkkkkkkkk!</span>
+                <input type="radio" name="star" value="2" class="align-baseline" />
+                <span class="me-4">**: This game is imbalance</span>
+                <input type="radio" name="star" value="3" class="align-baseline" />
+                <span class="me-4">***: Kinda mid</span>
+                <input type="radio" name="star" value="4" class="align-baseline" />
+                <span class="me-4">****: I like this game</span>
+                <input type="radio" name="star" value="5" class="align-baseline" />
+                <span>*****: This game is GOAT</span>
+            </div>
+            
+            <textarea name="comment" class="row col-12 py-2 ms-3" style="height:100px; width: 100%" placeholder="Share your thought and tips"></textarea>
+        </form>
+    </div>
+    <hr />
+    <div>
+        <h6>Other player comments: </h6>
+
+    </div>
+    
+</main>
+
