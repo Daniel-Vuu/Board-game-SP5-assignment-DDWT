@@ -1,0 +1,140 @@
+﻿@using WebMatrix.Data
+
+@{
+    ViewBag.Title = "Home Page";
+    var db = Database.Open("BoardGame");
+    List<dynamic> data;
+    var search_content = Request.Form["searchText"];
+    var View = Request.Form["view"];
+    var Filter = Request.Form["filter"];
+
+    if (string.IsNullOrEmpty(View))
+    {
+        View = "Card"; // default
+    }
+
+    var allData = "Select * from BoardGame as BG";
+    var category_sql = "select * from Category";
+    var db_categories = db.Query(category_sql).ToList();
+
+    if (string.IsNullOrEmpty(Filter))
+    {
+        Filter = "All"; // default
+    }
+
+    if(Filter != "All")
+    {
+        allData += " join GameCategory as GC on BG.BGGId = GC.BGGId Where GC.Category = @0";
+        data = db.Query(allData, Filter).ToList();
+        allData = allData.Replace(" join GameCategory as GC on BG.BGGId = GC.BGGId Where GC.Category = @0", "");
+    }
+
+    if (!String.IsNullOrWhiteSpace(search_content))
+    {
+        if (Filter != "All")
+        {
+            allData += " join GameCategory as GC on BG.BGGId = GC.BGGId WHERE BG.Name LIKE @0 AND GC.Category = @1";
+            data = db.Query(allData, "%" + search_content + "%", Filter).ToList();
+            allData = allData.Replace(" WHERE BG.Name LIKE @0 AND GC.Category = @1", ""); // reset for filter use
+        }
+        else
+        {
+            allData += " WHERE BG.Name LIKE @0";
+            data = db.Query(allData, "%" + search_content + "%").ToList();
+            allData = allData.Replace(" WHERE BG.Name LIKE @0", ""); // reset for filter use
+        }
+    }
+    else
+    {
+        if (Filter != "All")
+        {
+            allData += " join GameCategory as GC on BG.BGGId = GC.BGGId WHERE GC.Category = @0";
+            data = db.Query(allData, Filter).ToList();
+            allData = allData.Replace(" join GameCategory as GC on BG.BGGId = GC.BGGId WHERE GC.Category = @0", ""); // reset for filter use
+        }
+        else
+        {
+            data = db.Query(allData).ToList();
+        }
+    }
+
+    var datacount = data.Count();
+}
+
+<main>
+    <div class="text-bg-primary text-md-center" id="Welcome">
+        <h1>Welcome to board game archive</h1>
+    </div>
+    <div class="container d-flex justify-content-start">
+        <form method="post" class="col-5 align-content-center mt-2 justify-content-between" action="/Home/Index" id="Form">
+            <input name="searchText" type="text" placeholder="Search board game" class="col-3" value="@search_content" />
+            <button type="submit" class="btn btn-primary col-2 ms-2">Search</button>
+        </form>
+
+        <form action="/Home/Index" method="post">
+            <select class="mx-2 mt-2 btn btn-secondary dropdown-toggle" name="view" onchange="this.form.submit()">
+                <option value="Card" @(View == "Card" ? "selected" : "")>Card View</option>
+                <option value="Table" @(View == "Table" ? "selected" : "")>Table View</option>
+            </select>
+            <select name="filter" class="btn btn-secondary mt-2" onchange="this.form.submit()">
+                <option value="All" @(Filter == "All" ? "selected" : "")>All Categories</option>
+                @foreach (var category in db_categories)
+                {
+                    <option value="@category.categoryID" @(Filter == category.categoryID ? "selected" : "")>@category.category</option>
+                }
+            </select>
+        </form>
+    </div>
+    <hr />
+    <div class="container-md">
+        @{
+            if (View == "Card")
+            {
+                for (var i = 0; i < data.Count; i += 3)
+                {
+                    <div class="row justify-content-around">
+                        @for (var j = 0; j < 3 && i + j < data.Count; j++)
+                        {
+                            var item = data[i + j];
+                            if (item != null)
+                            {
+                                <div class="col-3 card my-2 mx-1">
+                                    <div class="card-body" style="max-height: 400px; overflow-y: scroll;">
+                                        <img src="@item.ImagePath" class="card-img-top fixed-img mt-2" />
+                                        <h5 class="card-title">@item.Name</h5>
+                                        <p class="card-text">@item.Description</p>
+                                    </div>
+                                    <a href="/Home/Details?id=@item.BGGId" class="btn btn-info my-2">How can I play this</a>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
+            else if (View == "Table")
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in data)
+                        {
+                            <tr>
+                                <td>@item.Name</td>
+                                <td>@item.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+        @if (data.Count() == 0)
+        {
+            <h2 class="text-danger text-center">Oops! No matching products returned...</h2>
+        }
+    </div>
+</main>
