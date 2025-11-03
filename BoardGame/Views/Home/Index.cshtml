@@ -13,7 +13,23 @@
         View = "Card"; // default
     }
 
-    var allData = "Select * from BoardGame as BG";
+    var displayData = @"
+        Select * 
+        from BoardGame as BG
+        left join (
+            select GC.BGGId, string_agg(GC.Category, ', ') as CategoriesCode, string_agg(C.Category, ', ') as Categories 
+            from GameCategory as GC
+            join Category as C
+            on GC.Category = C.CategoryID
+            group by BGGId
+        ) as GC on BG.BGGId = GC.BGGId
+        left join (
+            select FamilyCode, max(Family) as FamilyName 
+            from GameFamily
+            group by FamilyCode
+        ) as GF on BG.Family = GF.FamilyCode
+        where BG.BGGId <= 30
+        ";
     var category_sql = "select * from Category";
     var db_categories = db.Query(category_sql).ToList();
 
@@ -22,39 +38,47 @@
         Filter = "All"; // default
     }
 
-    if(Filter != "All")
+    if (Filter != "All")
     {
-        allData += " join GameCategory as GC on BG.BGGId = GC.BGGId Where GC.Category = @0";
-        data = db.Query(allData, Filter).ToList();
-        allData = allData.Replace(" join GameCategory as GC on BG.BGGId = GC.BGGId Where GC.Category = @0", "");
+        // Apply filter inside the subquery
+        displayData += " and CategoriesCode like @0";
+        data = db.Query(displayData, "%" + Filter + "%").ToList();
+        displayData = displayData.Replace(" and CategoriesCode like @0", "");
+    }
+    else
+    {
+        // No filter
+        data = db.Query(displayData).ToList();
     }
 
     if (!String.IsNullOrWhiteSpace(search_content))
     {
         if (Filter != "All")
         {
-            allData += " join GameCategory as GC on BG.BGGId = GC.BGGId WHERE BG.Name LIKE @0 AND GC.Category = @1";
-            data = db.Query(allData, "%" + search_content + "%", Filter).ToList();
-            allData = allData.Replace(" WHERE BG.Name LIKE @0 AND GC.Category = @1", ""); // reset for filter use
+            displayData = " and CategoriesCode like @0";
+            displayData += " and BG.Name LIKE @1";
+            data = db.Query(displayData, "%" + Filter + "%", "%" + search_content + "%").ToList();
+            displayData = displayData.Replace(" and BG.Name LIKE @1 ", ""); // reset for filter use
+            displayData = displayData.Replace(" and CategoriesCode like @0", "");
         }
         else
         {
-            allData += " WHERE BG.Name LIKE @0";
-            data = db.Query(allData, "%" + search_content + "%").ToList();
-            allData = allData.Replace(" WHERE BG.Name LIKE @0", ""); // reset for filter use
+            displayData += " and BG.Name LIKE @0";
+            data = db.Query(displayData, "%" + search_content + "%").ToList();
+            displayData = displayData.Replace(" and BG.Name LIKE @0", ""); // reset for filter use
         }
     }
     else
     {
         if (Filter != "All")
         {
-            allData += " join GameCategory as GC on BG.BGGId = GC.BGGId WHERE GC.Category = @0";
-            data = db.Query(allData, Filter).ToList();
-            allData = allData.Replace(" join GameCategory as GC on BG.BGGId = GC.BGGId WHERE GC.Category = @0", ""); // reset for filter use
+            displayData += " and CategoriesCode like @0";
+            data = db.Query(displayData, "%" + Filter + "%").ToList();
+            displayData = displayData.Replace(" and CategoriesCode like @0", "");
         }
         else
         {
-            data = db.Query(allData).ToList();
+            data = db.Query(displayData).ToList();
         }
     }
 
@@ -90,10 +114,10 @@
         @{
             if (View == "Card")
             {
-                for (var i = 0; i < data.Count; i += 3)
+                for (var i = 0; i < data.Count(); i += 3)
                 {
                     <div class="row justify-content-around">
-                        @for (var j = 0; j < 3 && i + j < data.Count; j++)
+                        @for (var j = 0; j < 3 && i + j < data.Count(); j++)
                         {
                             var item = data[i + j];
                             if (item != null)
@@ -102,6 +126,8 @@
                                     <div class="card-body" style="max-height: 400px; overflow-y: scroll;">
                                         <img src="@item.ImagePath" class="card-img-top fixed-img mt-2" />
                                         <h5 class="card-title">@item.Name</h5>
+                                        <h6 class="card-text">Family: @item.FamilyName</h6>
+                                        <h6 class="card-text">Category: @item.Categories</h6>
                                         <p class="card-text">@item.Description</p>
                                     </div>
                                     <a href="/Home/Details?id=@item.BGGId" class="btn btn-info my-2">How can I play this</a>
@@ -117,6 +143,8 @@
                     <thead>
                         <tr>
                             <th>Name</th>
+                            <th>Family</th>
+                            <th>Categories</th>
                             <th>Description</th>
                         </tr>
                     </thead>
@@ -125,6 +153,8 @@
                         {
                             <tr>
                                 <td>@item.Name</td>
+                                <td>@item.FamilyName</td>
+                                <td>@item.Categories</td>
                                 <td>@item.Description</td>
                             </tr>
                         }
