@@ -4,8 +4,26 @@
     ViewBag.Title = "Detail";
     var db = Database.Open("BoardGame");
     var ChoosenGame = Request.QueryString["id"];
-    var gameDetailsQuery = "select * from BoardGame where BGGId = @0";
+    var gameDetailsQuery = @"
+        Select * 
+        from BoardGame as BG
+        left join (
+            select GC.BGGId, string_agg(GC.Category, ', ') as CategoriesCode, string_agg(C.Category, ', ') as Categories 
+            from GameCategory as GC
+            join Category as C
+            on GC.Category = C.CategoryID
+            group by BGGId
+        ) as GC on BG.BGGId = GC.BGGId
+        left join (
+            select FamilyCode, max(Family) as FamilyName 
+            from GameFamily
+            group by FamilyCode
+        ) as GF on BG.Family = GF.FamilyCode
+        where BG.BGGId = @0";
     var gameDetailsData = db.QuerySingle(gameDetailsQuery, ChoosenGame);
+    var userReviewCount = "select BGGId, avg(Rating) as avgRating, count(Username) as numUser from UserRating where BGGId = @0 group by BGGId";
+    var reviewData = db.QuerySingle(userReviewCount, ChoosenGame);
+
 }
 
 <main>
@@ -13,12 +31,26 @@
         <img src="@gameDetailsData.ImagePath.ToString()" alt="@gameDetailsData.Name cover image" style="max-height:200px"/>
         <div class="ms-3">
             <p><b>Board game name:</b> @gameDetailsData.Name</p>
+            <p><b>Family:</b> @(gameDetailsData.FamilyName == null? "First game in series": gameDetailsData.FamilyName)</p>
+            <p><b>Category:</b> @(gameDetailsData.Categories == null? "I'm not too sure?": gameDetailsData.Categories)</p>
             <p><b>Number of players:</b> @gameDetailsData.MinPlayers ~ @gameDetailsData.MaxPlayers</p>
-            <p><b>Game weight:</b> @Math.Round(gameDetailsData.GameWeight,2) gram</p>
-            <p><b>Best number of players: </b>@{ if (gameDetailsData.BestPlayers == 0)
-                { <span> The more the merrier</span>  }
-                    else {<span>@gameDetailsData.BestPlayers players</span>}
-                }</p>
+            <p><b>Game weight:</b> @Math.Round(gameDetailsData.GameWeight, 2) gram</p>
+            <p>
+                <b>Best number of players: </b>@{ if (gameDetailsData.BestPlayers == 0)
+                    { <span> The more the merrier</span> }
+                    else
+                    {<span>@gameDetailsData.BestPlayers players</span>}
+                }
+            </p>
+            @if (reviewData != null)
+            {
+                <p><b>Number of rating: </b>@reviewData.numUser)</p>
+                <p><b>Average rating: </b>@reviewData.avgRating / 10</p>
+            }
+            else
+            {
+                <p><b>Number of rating: </b>This game does not have any review</p>
+            }
         </div>
         <div class="ms-3 text-center">
             <h2>#@gameDetailsData.RankInboardgame</h2>
@@ -47,8 +79,6 @@
                 <input type="radio" name="star" value="5" class="align-baseline" />
                 <span>*****: This game is GOAT</span>
             </div>
-            
-            <textarea name="comment" class="row col-12 py-2 ms-3" style="height:100px; width: 100%" placeholder="Share your thought and tips"></textarea>
         </form>
     </div>
     <hr />
