@@ -28,7 +28,7 @@
             from GameFamily
             group by FamilyCode
         ) as GF on BG.Family = GF.FamilyCode
-        where BG.BGGId <= 30
+        where BG.BGGId <= 1000
         ";
     var category_sql = "select * from Category";
     var db_categories = db.Query(category_sql).ToList();
@@ -126,8 +126,8 @@
                                     <div class="card-body" style="max-height: 400px; overflow-y: scroll;">
                                         <img src="@item.ImagePath" class="card-img-top fixed-img mt-2" />
                                         <h5 class="card-title">@item.Name</h5>
-                                        <h6 class="card-text">Family: @item.FamilyName</h6>
-                                        <h6 class="card-text">Category: @item.Categories</h6>
+                                        <h6 class="card-text">Family: @(item.FamilyName == null? "First game in series": item.FamilyName)</h6>
+                                        <h6 class="card-text">Category: @(item.Categories == null? "I'm not too sure?": item.Categories)</h6>
                                         <p class="card-text">@item.Description</p>
                                     </div>
                                     <a href="/Home/Details?id=@item.BGGId" class="btn btn-info my-2">How can I play this</a>
