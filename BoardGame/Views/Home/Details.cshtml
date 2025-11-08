@@ -22,7 +22,9 @@
         where BG.BGGId = @0";
     var gameDetailsData = db.QuerySingle(gameDetailsQuery, ChoosenGame);
     var userReviewCount = "select BGGId, avg(Rating) as avgRating, count(Username) as numUser from UserRating where BGGId = @0 group by BGGId";
-    var reviewData = db.QuerySingle(userReviewCount, ChoosenGame);
+    var reviewCountData = db.QuerySingle(userReviewCount, ChoosenGame);
+    var userReview = "select * from UserRating where BGGId = @0";
+    var reviewData = db.Query(userReview, ChoosenGame);
 
 }
 
@@ -42,10 +44,10 @@
                     {<span>@gameDetailsData.BestPlayers players</span>}
                 }
             </p>
-            @if (reviewData != null)
+            @if (reviewCountData != null)
             {
-                <p><b>Number of rating: </b>@reviewData.numUser)</p>
-                <p><b>Average rating: </b>@reviewData.avgRating / 10</p>
+                <p><b>Number of rating: </b>@reviewCountData.numUser</p>
+                <p><b>Average rating: </b>@Math.Round(reviewCountData.avgRating,2) / 10</p>
             }
             else
             {
@@ -84,7 +86,24 @@
     <hr />
     <div>
         <h6>Other player comments: </h6>
-
+        <div></div>
+        @if(reviewData.Count() == 0)
+            {
+                <h5 class="text-center text-warning"> OOPs this game does not have any reivew</h5>
+            }
+        else
+            {
+                foreach (var row in reviewData)
+                {
+                    <div class="container col-12" style="height:100px">
+                        <div class="d-flex justify-content-between">
+                            <p class="text-primary">@row.Username</p>
+                            <span class="text-secondary">@row.ReviewDate </span>
+                        </div>
+                        <h3 class="text-bg-warning">@for (var i = 0; i < row.Rating; i++) { <span>*</span> }</h3>
+                    </div>
+                }
+            }
     </div>
     
 </main>

@@ -55,7 +55,7 @@
     {
         if (Filter != "All")
         {
-            displayData = " and CategoriesCode like @0";
+            displayData += " and CategoriesCode like @0";
             displayData += " and BG.Name LIKE @1";
             data = db.Query(displayData, "%" + Filter + "%", "%" + search_content + "%").ToList();
             displayData = displayData.Replace(" and BG.Name LIKE @1 ", ""); // reset for filter use
