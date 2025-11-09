@@ -5,50 +5,96 @@
 
 @using WebMatrix.Data
 @{
-                var db = Database.Open("BoardGame");
-                var insertItem = "insert into BoardGame(Name, Description, GameWeight, MinPlayers, MaxPlayers, LanguageEase, NumOwned, NumWish, BestPlayers, Family, ImagePath) values (@0,@1,@2,@3,@4); select scope_identity()";
-                var Name = Request.Form["Name"];
-                var Description = Request.Form["Description"];
-                var Weight = Request.Form["weight"];
-                var Image_URL = Request.Form["image_URL"];
-                var Category = Request.Form["category"];
-                var min_player = Request.Form["min_player"];
-                var max_player = Request.Form["max_player"];
+    var db = Database.Open("BoardGame");
+    var insertGame = "insert into BoardGame(BGGId, Name, YearPublished, Description, GameWeight, MinPlayers, MaxPlayers, BestPlayers, LanguageEase, numOwned, Family, ImagePath) values (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11)";
+    var Name = Request.Form["gameName"];
+    var Year = Request.Form["year"];
+    var Description = Request.Form["description"];
+    var Weight = Request.Form["weight"];
+    var Image_URL = Request.Form["image_URL"];
+    var Category = Request.Form["category"];
+    var Family = Request.Form["family"];
+    var Theme = Request.Form["theme"];
+    var Language_ease = Request.Form["ease"];
+    var Number_owned = Request.Form["owned"];
+    var Min_player = Request.Form["min_play"];
+    var Max_player = Request.Form["max_play"];
+    var Best_player = Request.Form["best_play"];
 
-                var category_query = "Select C.CategoryID, C.Category from Category as C";
-                var allCategory = db.Query(category_query).ToList();
+    var category_query = "Select C.CategoryID, C.Category from Category as C";
+    var allCategory = db.Query(category_query).ToList();
 
-                var family_query = "Select * from GameFamily";
-                var allFamily = db.Query(family_query).ToList();
+    var family_query = "Select * from GameFamily";
+    var allFamily = db.Query(family_query).ToList();
 
-                var theme_query = "Select * from Theme";
-                var allTheme = db.Query(theme_query).ToList();
+    var theme_query = "Select * from Theme";
+    var allTheme = db.Query(theme_query).ToList();
 
-                if (IsPost)
-                {
-                    try
-                    {
-                        var inserted_item = db.QueryValue(insertItem, Name, Description, Weight, min_player, max_player, Image_URL, Category);
-                <div class="alert alert-success text-center" role="alert">
-                    Insert success
+    if (IsPost)
+    {
+        var new_theme = Request.Form["new_theme"];
+        if (new_theme != null)
+        {
+            try
+            {
+                Theme = "T" + (allTheme.Count() + 1);
+                var insertTheme = "Insert into Theme(ThemeID, ThemeName) values (@0, @1)";
+                db.Execute(insertTheme, Theme, new_theme);
+            }
+            catch
+            {
+                <div class="alert alert-danger text-center" role="alert">
+                    Cannot insert new theme. Please try again.
                 </div>
-        Response.Redirect("/Edit?id=" + inserted_item);
+            }
+        }
+        var allGame = db.Query("select * from BoardGame where BGGId > 4000").ToList();
+        var BGGId = 0;
+        foreach (var game in allGame)
+        {
+            if (game.BGGId > BGGId)
+            {
+                BGGId = game.BGGId;
+            }
+        }
+
+        try
+        {
+            BGGId++;
+            db.Execute(insertGame, BGGId, Name, Year, Description, Weight, Min_player, Max_player, Best_player, Language_ease, Number_owned, (Family == "" ? "Null" : Family), (Image_URL == "" ? "Null" : Image_URL));
+            if(Category != null)
+            {
+                db.Execute("Insert into GameCategory(BGGId, Category) values(@0,@1)", BGGId, Category);
+            }
+            if (Theme != null)
+            {
+                db.Execute("Insert into GameInThemes(BGGId, ThemeID) values(@0,@1)", BGGId, Theme);
+            }
+            <div class="alert alert-success text-center" role="alert">
+                Insert success
+            </div>
+            Response.Redirect("Home/Edit?id=" + BGGId);
         }
         catch
         {
             <div class="alert alert-danger text-center" role="alert">
-                Cannot insert item. Please try again.
+                Cannot insert new game. Please try again.
             </div>
         }
-     }
+    }
 }
 
 <h2 class="text-center bg-secondary m-2">Create Product</h2>
-<form action="/Create" method="post" class="container">
+<form action="/Home/Create" method="post" class="container">
     <div class="row">
         <p>BGGId # [Auto]</p>
+
         <p class="mb-0 px-0">Name</p>
-        <input type="text" name="name" class="ms-1 mb-2 col-5" placeholder="Board game name..." required>
+        <input type="text" name="gameName" class="ms-1 mb-2 col-5" placeholder="Board game name..." required>
+
+        <p class="mb-0 px-0">Year Published</p>
+        <input type="date" name="year" class="ms-1 mb-2 col-5" placeholder="Board game Publish year..." required>
+
         <p class="mb-0 px-0">Category</p>
         <select name="category" class="ms-1 mb-2 col-3" required>
             <option value="@null" selected>Select Category...</option>
@@ -57,36 +103,59 @@
                 <option value="@category.categoryID">@(category.Category)</option>
             }
         </select>
+
         <p class="mb-0 px-0">Family</p>
         <select name="family" class="ms-1 mb-2 col-3">
             <option value="@null" selected>Select Family...</option>
-            @foreach (var Family in allFamily)
+            @foreach (var family in allFamily)
             {
-                <option value="@Family.FamilyCode">@(Family.Family)</option>
+                <option value="@family.FamilyCode">@(family.Family)</option>
             }
         </select>
+
         <p class="mb-0 px-0">Theme</p>
-        <select name="theme" class="ms-1 mb-2 col-3" required>
-            <option value="@null" selected onclick="document.getElementByID("new_cate").setAttribute('hidden')">Select Theme...</option>
+        <select id="theme" name="theme" class="ms-1 mb-2 col-3" required>
+            <option value="@null" selected>Select Theme...</option>
             @foreach (var theme in allTheme)
             {
-                <option value="@theme.ThemeID" onclick="document.getElementByID("new_cate").setAttribute('hidden')">@theme.ThemeName</option>
+                <option value="@theme.ThemeID">@theme.ThemeName</option>
             }
-            <option value="" onclick="document.getElementByID("new_cate").removeAttribute('hidden')">A new theme</option>
+            <option value="new">A new theme</option>
         </select>
-        <span id="new_cate" hidden><input type="text" name="new_theme" value="" placeholder="Enter the new theme name here"/></span>
+        <span id="new_theme" hidden><input type="text" id="new_theme_input" name="new_theme" class="ms-1 mb-2 col-2" required value="" placeholder="Enter the new theme name here" /></span>
+
+        @section Scripts {
+            <script>
+                document.getElementById("theme").addEventListener("change", function () {
+                    const newThemeSection = document.getElementById("new_theme");
+                    const newThemeInput = document.getElementById("new_theme_input");
+                    newThemeSection.hidden = this.value !== "new"; // show if a new theme selected
+                    newThemeInput.disabled = this.value !== "new"; 
+                });
+            </script>
+        }
+
         <p class="mb-0 px-0">Game weight</p>
         <input type="number" step="0.01" name="weight" class="ms-1 mb-2 col-2" min="0.00" required>
+
         <p class="mb-0 px-0">Minimum players</p>
         <input type="number" step="1" name="min_play" class="ms-1 mb-2 col-2" min="1" required>
+
         <p class="mb-0 px-0">Maximum players</p>
-        <input type="number" step="1" name="max_play" class="ms-1 mb-2 col-2" min="2" required>
+        <input type="number" step="1" name="max_play" class="ms-1 mb-2 col-2" min="1" required>
+
+        <p class="mb-0 px-0">Best number of players</p>
+        <input type="number" step="1" name="best_play" class="ms-1 mb-2 col-2" min="1" required>
+
         <p class="mb-0 px-0">Language ease</p>
         <input type="number" step="1" name="ease" class="ms-1 mb-2 col-2">
+
         <p class="mb-0 px-0">Number of player owned the game</p>
         <input type="number" step="1" name="owned" class="ms-1 mb-2 col-2">
+
         <p class="mb-0 px-0">Description</p>
         <textarea name="description" placeholder="Game Description" class="ms-1 mb-2 col-12" style="height:200px"></textarea>
+
         <p class="mb-0 px-0">Image URL</p>
         <input type="text" name="image_URL" placeholder="Image URL" />
     </div>
