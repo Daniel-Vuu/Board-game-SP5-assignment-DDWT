@@ -1,7 +1,288 @@
-﻿
+﻿@using WebMatrix.Data
+
 @{
     ViewBag.Title = "Edit";
 }
 
-<h2>Edit</h2>
+@{
+    var db = Database.Open("BoardGame");
+    var selected_game_id = Request.QueryString["id"];
+    var displayData = @"
+Select *
+from BoardGame as BG
+left join (
+select GC.BGGId, string_agg(GC.Category, ',') as CategoriesCode, string_agg(C.Category, ',') as Categories
+from GameCategory as GC
+join Category as C
+on GC.Category = C.CategoryID
+group by BGGId
+) as GC on BG.BGGId = GC.BGGId
+left join (
+select GT.BGGId, string_agg(GT.ThemeID, ',') as ThemeCode, string_agg(T.ThemeName, ',') as Themes
+from GameInThemes as GT
+join Theme as T
+on GT.ThemeID = T.ThemeID
+group by BGGId
+) as GT on BG.BGGId = GT.BGGId
+left join (
+select FamilyCode, max(Family) as FamilyName
+from GameFamily
+group by FamilyCode
+) as GF on BG.Family = GF.FamilyCode
+where BG.BGGId = @0
+";
+    var selected_game_data = db.QuerySingle(displayData, selected_game_id);
+
+    if (IsPost)
+    {
+        var gameId = Request.Form["BGGID"];
+        var gameName = Request.Form["Name"];
+        var description = Request.Form["Description"];
+        var yearPublished = Request.Form["YearPublished"];
+        var gameWeight = Request.Form["GameWeight"];
+        var minPlayers = Request.Form["MinPlayers"];
+        var maxPlayers = Request.Form["MaxPlayers"];
+        var comAgeRec = Request.Form["ComAgeRec"];
+        var languageEase = Request.Form["LanguageEase"];
+        var bestPlayers = Request.Form["BestPlayers"];
+        var numOwned = Request.Form["NumOwned"];
+        var numWant = Request.Form["NumWant"];
+        var numWish = Request.Form["NumWish"];
+        var mfgPlaytime = Request.Form["MfgPlaytime"];
+        var comMinPlayTime = Request.Form["ComMinPlayTime"];
+        var comMaxPlayTime = Request.Form["ComMaxPlayTime"];
+        var mfgAgeRec = Request.Form["mfgAgeRec"];
+        var numAlternates = Request.Form["numAlternates"];
+        var numExpansions = Request.Form["numExpansions"];
+        var numImplementations = Request.Form["numImplementations"];
+        var family = Request.Form["Family"];
+        var category = Request.Form["Category"];
+        var theme = Request.Form["Theme"];
+        var imagePath = Request.Form["imagePath"];
+        var rankInBoardGames = Request.Form["rankInBoardGames"];
+        var rankInStrategyGames = Request.Form["rankInStrategyGames"];
+        var rankInFamilyGames = Request.Form["rankInFamilyGames"];
+        var rankInThematic = Request.Form["rankInThematic"];
+        try
+        {
+            if (selected_game_data.Categories != category)
+            {
+                var categoryDB = db.Query("select * from Category");
+                string[] category_items = category.Split(',');
+                for (var i = 0; i < category_items.Length; i++)
+                {
+                    foreach (var category_item in categoryDB)
+                    {
+                        if (category_item.Category == category_items[i])
+                        {
+                            category_items[i] = category_item.CategoryID;
+                        }
+                    }
+                }
+                db.Execute("Delete from GameCategory where BGGId = @0", selected_game_id);
+                foreach (var id in category_items)
+                {
+                    db.Execute("Insert into GameCategory(BGGId, Category) values(@0, @1)", selected_game_id, id);
+                }
+            }
+        }
+        catch
+        {
+            <div class="alert alert-danger text-center" role="alert">
+                Cannot change category. Please try again.
+            </div>
+        }
+        try
+        {
+            if (selected_game_data.Themes != theme)
+            {
+                var themeDB = db.Query("select * from Theme");
+                string[] theme_items = theme.Split(',');
+                for (var i = 0; i < theme_items.Length; i++)
+                {
+                    foreach (var theme_item in themeDB)
+                    {
+                        if (theme_item.ThemeName == theme_items[i])
+                        {
+                            theme_items[i] = theme_item.ThemeID;
+                        }
+                    }
+                }
+                db.Execute("Delete from GameInThemes where BGGId = @0", selected_game_id);
+                foreach (var id in theme_items)
+                {
+                    db.Execute("Insert into GameCategory(BGGId, Category) values(@0, @1)", selected_game_id, id);
+                }
+            }
+        }
+        catch
+        {
+            <div class="alert alert-danger text-center" role="alert">
+                Cannot change theme. Please try again.
+            </div>
+        }
+    }
+}
+
+<h2 class="text-center text-capitalize bg-primary text-light">ID : @selected_game_data.BGGId</h2>
+<hr />
+<main class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-md-11">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h1 class="h4 mb-4">Edit Board Game</h1>
+                    <div id="alert-container"></div>
+
+                    <form id="editForm" novalidate method="post" action="/Home/Edit?id=@selected_game_id">
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="Name">Name</label>
+                                <input class="form-control" id="Name" name="Name" value="@selected_game_data.Name" required />
+                                <div class="invalid-feedback">Please enter the game name.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="YearPublished">Year Published</label>
+                                <input type="date" class="form-control" id="YearPublished" name="YearPublished" value="@selected_game_data.YearPublished" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="Description">Description</label>
+                                <textarea class="form-control" id="Description" name="Description" rows="3">@selected_game_data.Description</textarea>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="GameWeight">Game Weight</label>
+                                <input type="number" step="0.1" class="form-control" id="GameWeight" name="GameWeight" value="@selected_game_data.GameWeight" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="MinPlayers">Min Players</label>
+                                <input type="number" class="form-control" id="MinPlayers" name="MinPlayers" min="1" value="@selected_game_data.MinPlayers" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="MaxPlayers">Max Players</label>
+                                <input type="number" class="form-control" id="MaxPlayers" name="MaxPlayers" min="1" value="@selected_game_data.MaxPlayers" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="ComAgeRec">Community Age Rec.</label>
+                                <input type="number" class="form-control" id="ComAgeRec" name="ComAgeRec" min="0" value="@(selected_game_data.ComAgeRec == null? "" : selected_game_data.ComAgeRec)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="LanguageEase">Language Ease</label>
+                                <input type="number" class="form-control" id="LanguageEase" name="LanguageEase" value="@(selected_game_data.LanguageEase == null? "" : selected_game_data.LanguageEase)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="BestPlayers">Best Players</label>
+                                <input type="text" class="form-control" id="BestPlayers" name="BestPlayers" value="@selected_game_data.BestPlayers" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="NumOwned">Num Owned</label>
+                                <input type="number" class="form-control" id="NumOwned" name="NumOwned" value="@(selected_game_data.NumOwned == null? "" : selected_game_data.NumOwned)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="NumWant">Num Want</label>
+                                <input type="number" class="form-control" id="NumWant" name="NumWant" value="@(selected_game_data.NumWant == null? "" : selected_game_data.NumWant)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="NumWish">Num Wish</label>
+                                <input type="number" class="form-control" id="NumWish" name="NumWish" value="@(selected_game_data.NumWish == null? "" : selected_game_data.NumWish)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="MfgPlaytime">Mfg Playtime</label>
+                                <input type="number" class="form-control" id="MfgPlaytime" name="MfgPlaytime" value="@(selected_game_data.MfgPlaytime == null? "" : selected_game_data.MfgPlaytime)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="ComMinPlayTime">Com Min Playtime</label>
+                                <input type="number" class="form-control" id="ComMinPlayTime" name="ComMinPlayTime" value="@(selected_game_data.ComMinPlaytime == null? "" : selected_game_data.ComMinPlaytime)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="ComMaxPlayTime">Com Max Playtime</label>
+                                <input type="number" class="form-control" id="ComMaxPlayTime" name="ComMaxPlayTime" value="@(selected_game_data.ComMaxPlaytime == null? "" : selected_game_data.ComMaxPlaytime)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="mfgAgeRec">Mfg Age Rec</label>
+                                <input type="number" class="form-control" id="mfgAgeRec" name="mfgAgeRec" value="@(selected_game_data.MfgAgeRec == null? "" : selected_game_data.MfgAgeRec)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="numAlternates">Num Alternates</label>
+                                <input type="number" class="form-control" id="numAlternates" name="numAlternates" value="@(selected_game_data.numAlternates == null? "" : selected_game_data.numAlternates)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="numExpansions">Num Expansions</label>
+                                <input type="number" class="form-control" id="numExpansions" name="numExpansions" value="@(selected_game_data.numExpansions == null? "" : selected_game_data.numExpansions)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="numImplementations">Num Implementations</label>
+                                <input type="number" class="form-control" id="numImplementations" name="numImplementations" value="@(selected_game_data.numImplementations == null? "" : selected_game_data.numImplementations)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Family">Family</label>
+                                <input type="text" class="form-control" id="Family" name="Family" value="@(selected_game_data.Family == null? "" : selected_game_data.Family)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Category">Category</label>
+                                <input type="text" class="form-control" id="Category" name="Category" value="@(selected_game_data.Categories == null? "" : selected_game_data.Categories)" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Theme">Theme</label>
+                                <input type="text" class="form-control" id="Theme" name="Theme" value="@(selected_game_data.Themes == null? "" : selected_game_data.Themes)" />
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label" for="imagePath">Image Path</label>
+                                <input type="text" class="form-control" id="imagePath" name="imagePath" value="@(selected_game_data.ImagePath == null? "" : selected_game_data.ImagePath)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="rankInBoardGames">Rank (Board Games)</label>
+                                <input type="number" class="form-control" id="rankInBoardGames" name="rankInBoardGames" value="@(selected_game_data.RankInboardgame == null? "" : selected_game_data.RankInboardgame)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="rankInStrategyGames">Rank (Strategy)</label>
+                                <input type="number" class="form-control" id="rankInStrategyGames" name="rankInStrategyGames" value="@(selected_game_data.RankInstrategygames == null? "" : selected_game_data.RankInstrategygames)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="rankInFamilyGames">Rank (Family)</label>
+                                <input type="number" class="form-control" id="rankInFamilyGames" name="rankInFamilyGames" value="@(selected_game_data.RankInfamilygames == null? "" : selected_game_data.RankInfamilygames)" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="rankInThematic">Rank (Thematic)</label>
+                                <input type="number" class="form-control" id="rankInThematic" name="rankInThematic" value="@(selected_game_data.RankInthematic == null? "" : selected_game_data.RankInthematic)" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <a href="/Home/Details?id=@selected_game_id" id="cancelBtn" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
 
