@@ -8,29 +8,29 @@
     var db = Database.Open("BoardGame");
     var selected_game_id = Request.QueryString["id"];
     var displayData = @"
-Select *
-from BoardGame as BG
-left join (
-select GC.BGGId, string_agg(GC.Category, ',') as CategoriesCode, string_agg(C.Category, ',') as Categories
-from GameCategory as GC
-join Category as C
-on GC.Category = C.CategoryID
-group by BGGId
-) as GC on BG.BGGId = GC.BGGId
-left join (
-select GT.BGGId, string_agg(GT.ThemeID, ',') as ThemeCode, string_agg(T.ThemeName, ',') as Themes
-from GameInThemes as GT
-join Theme as T
-on GT.ThemeID = T.ThemeID
-group by BGGId
-) as GT on BG.BGGId = GT.BGGId
-left join (
-select FamilyCode, max(Family) as FamilyName
-from GameFamily
-group by FamilyCode
-) as GF on BG.Family = GF.FamilyCode
-where BG.BGGId = @0
-";
+        Select *
+        from BoardGame as BG
+        left join (
+        select GC.BGGId, string_agg(GC.Category, ',') as CategoriesCode, string_agg(C.Category, ',') as Categories
+        from GameCategory as GC
+        join Category as C
+        on GC.Category = C.CategoryID
+        group by BGGId
+        ) as GC on BG.BGGId = GC.BGGId
+        left join (
+        select GT.BGGId, string_agg(GT.ThemeID, ',') as ThemesCode, string_agg(T.ThemeName, ',') as Themes
+        from GameInThemes as GT
+        join Theme as T
+        on GT.ThemeID = T.ThemeID
+        group by BGGId
+        ) as GT on BG.BGGId = GT.BGGId
+        left join (
+        select FamilyCode, max(Family) as FamilyName
+        from GameFamily
+        group by FamilyCode
+        ) as GF on BG.Family = GF.FamilyCode
+        where BG.BGGId = @0
+        ";
     var selected_game_data = db.QuerySingle(displayData, selected_game_id);
 
     if (IsPost)
@@ -63,11 +63,13 @@ where BG.BGGId = @0
         var rankInStrategyGames = Request.Form["rankInStrategyGames"];
         var rankInFamilyGames = Request.Form["rankInFamilyGames"];
         var rankInThematic = Request.Form["rankInThematic"];
+
+        var categoryDB = db.Query("select * from Category");
+        var themeDB = db.Query("select * from Theme");
         try
         {
-            if (selected_game_data.Categories != category)
+            if (selected_game_data.CategoriesCode != category)
             {
-                var categoryDB = db.Query("select * from Category");
                 string[] category_items = category.Split(',');
                 for (var i = 0; i < category_items.Length; i++)
                 {
@@ -94,9 +96,8 @@ where BG.BGGId = @0
         }
         try
         {
-            if (selected_game_data.Themes != theme)
+            if (selected_game_data.ThemesCode != theme)
             {
-                var themeDB = db.Query("select * from Theme");
                 string[] theme_items = theme.Split(',');
                 for (var i = 0; i < theme_items.Length; i++)
                 {
@@ -121,6 +122,7 @@ where BG.BGGId = @0
                 Cannot change theme. Please try again.
             </div>
         }
+        Response.Redirect("Edit?id=" + selected_game_id);
     }
 }
 
@@ -240,12 +242,24 @@ where BG.BGGId = @0
 
                             <div class="col-md-4">
                                 <label class="form-label" for="Category">Category</label>
-                                <input type="text" class="form-control" id="Category" name="Category" value="@(selected_game_data.Categories == null? "" : selected_game_data.Categories)" />
+                                <select name="Category" class="form-control" id="Category">
+                                    <option selected value="@selected_game_data.CategoriesCode">@(selected_game_data.Categories == null? "" : selected_game_data.Categories)</option>
+                                    @foreach (var category in db.Query("select * from Category"))
+                                    {
+                                        <option value="@category.CategoryID">@category.Category</option>
+                                    }
+                                </select>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label" for="Theme">Theme</label>
-                                <input type="text" class="form-control" id="Theme" name="Theme" value="@(selected_game_data.Themes == null? "" : selected_game_data.Themes)" />
+                                <select name="Theme" class="form-control" id="Theme">
+                                    <option selected value="@selected_game_data.ThemesCode">@(selected_game_data.Themes == null? "" : selected_game_data.Themes)</option>
+                                    @foreach (var theme in db.Query("select * from Theme"))
+                                    {
+                                        <option value="@theme.ThemeID">@theme.ThemeName</option>
+                                    }
+                                </select>
                             </div>
 
                             <div class="col-md-8">
