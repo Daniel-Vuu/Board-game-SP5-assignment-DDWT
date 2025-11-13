@@ -86,7 +86,6 @@
     <hr />
     <div>
         <h6>Other player comments: </h6>
-        <div></div>
         @if(reviewData.Count() == 0)
             {
                 <h5 class="text-center text-warning"> OOPs this game does not have any reivew</h5>
@@ -104,6 +103,7 @@
                     </div>
                 }
             }
+        <a class="my-2 btn btn-primary" href="/Home/Edit?id=@ChoosenGame">Edit this game</a>
     </div>
     
 </main>

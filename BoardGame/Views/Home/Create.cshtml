@@ -6,20 +6,6 @@
 @using WebMatrix.Data
 @{
     var db = Database.Open("BoardGame");
-    var insertGame = "insert into BoardGame(BGGId, Name, YearPublished, Description, GameWeight, MinPlayers, MaxPlayers, BestPlayers, LanguageEase, numOwned, Family, ImagePath) values (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11)";
-    var Name = Request.Form["gameName"];
-    var Year = Request.Form["year"];
-    var Description = Request.Form["description"];
-    var Weight = Request.Form["weight"];
-    var Image_URL = Request.Form["image_URL"];
-    var Category = Request.Form["category"];
-    var Family = Request.Form["family"];
-    var Theme = Request.Form["theme"];
-    var Language_ease = Request.Form["ease"];
-    var Number_owned = Request.Form["owned"];
-    var Min_player = Request.Form["min_play"];
-    var Max_player = Request.Form["max_play"];
-    var Best_player = Request.Form["best_play"];
 
     var category_query = "Select C.CategoryID, C.Category from Category as C";
     var allCategory = db.Query(category_query).ToList();
@@ -32,6 +18,20 @@
 
     if (IsPost)
     {
+        var insertGame = "insert into BoardGame(BGGId, Name, YearPublished, Description, GameWeight, MinPlayers, MaxPlayers, BestPlayers, LanguageEase, numOwned, Family, ImagePath) values (@0,@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11)";
+        var Name = Request.Form["gameName"];
+        var Year = Request.Form["year"];
+        var Description = Request.Form["description"];
+        var Weight = Request.Form["weight"];
+        var Image_URL = Request.Form["image_URL"];
+        var Category = Request.Form["category"];
+        var Family = Request.Form["family"];
+        var Theme = Request.Form["theme"];
+        var Language_ease = Request.Form["ease"];
+        var Number_owned = Request.Form["owned"];
+        var Min_player = Request.Form["min_play"];
+        var Max_player = Request.Form["max_play"];
+        var Best_player = Request.Form["best_play"];
         var new_theme = Request.Form["new_theme"];
 
         // Normalize blank or unselected options
@@ -125,7 +125,7 @@
             }
             <option value="new">A new theme</option>
         </select>
-        <span id="new_theme" hidden><input type="text" id="new_theme_input" name="new_theme" class="ms-1 mb-2 form-control" required value="" placeholder="Enter the new theme name here" /></span>
+        <span id="new_theme" hidden><input type="text" id="new_theme_input" name="new_theme" class="ms-1 mb-2 form-control" value="" placeholder="Enter the new theme name here" /></span>
 
         @section Scripts {
             <script>

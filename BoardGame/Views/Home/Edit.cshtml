@@ -147,7 +147,8 @@
 
                             <div class="col-md-6">
                                 <label class="form-label" for="YearPublished">Year Published</label>
-                                <input type="date" class="form-control" id="YearPublished" name="YearPublished" value="@selected_game_data.YearPublished" />
+                                <input type="date" class="form-control" id="YearPublished" name="YearPublished" value="@(((DateTime)selected_game_data.YearPublished).ToString("yyyy-MM-dd"))" />
+                                <p>@selected_game_data.YearPublished</p>
                             </div>
 
                             <div class="col-12">
